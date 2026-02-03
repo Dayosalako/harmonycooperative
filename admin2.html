@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmony Elite | Super Admin Command</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .bg-coop-green { background-color: #059669; }
+    .text-coop-green { color: #059669; }
+    .sidebar-link.active { background-color: #f1f5f9; color: #059669; font-weight: 800; border-right: 4px solid #059669; }
+    .tab-content { display: none; animation: fadeIn 0.4s ease-out; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
+    .stat-card:hover { transform: translateY(-5px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="flex min-h-screen">
+
+  <div id="authOverlay" class="fixed inset-0 z-[200] bg-slate-900 flex items-center justify-center p-4 backdrop-blur-xl">
+    <div class="bg-white p-12 rounded-[3rem] w-full max-w-md shadow-2xl text-center border border-slate-100">
+        <div class="w-20 h-20 bg-emerald-600 rounded-[2rem] flex items-center justify-center text-white font-black mx-auto mb-8 text-3xl shadow-xl shadow-emerald-200">H</div>
+        <h2 class="text-3xl font-black mb-2 tracking-tighter">Elite Command</h2>
+        <p class="text-slate-400 text-sm mb-10 font-medium">Authorization required for system access</p>
+        <div class="space-y-4">
+            <input type="text" id="adminUser" placeholder="Admin Username" class="w-full p-5 bg-slate-50 rounded-2xl outline-none border border-transparent focus:border-emerald-500 focus:bg-white transition-all font-semibold">
+            <input type="password" id="adminPass" placeholder="Access Key" class="w-full p-5 bg-slate-50 rounded-2xl outline-none border border-transparent focus:border-emerald-500 focus:bg-white transition-all text-center font-bold tracking-widest">
+        </div>
+        <button onclick="handleAdminLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black mt-8 hover:bg-black transition-all shadow-lg active:scale-95">UNLOCKED TERMINAL</button>
+    </div>
+  </div>
+
+  <div id="globalModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden bg-slate-900/40 backdrop-blur-md p-4">
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 p-10 text-center">
+        <div id="modalBody"></div>
+        <button onclick="closeModal()" class="w-full bg-slate-900 text-white py-4 rounded-2xl text-sm font-black hover:bg-black transition-all mt-6 shadow-lg">DISMISS</button>
+    </div>
+  </div>
+
+  <aside class="w-80 bg-white border-r border-slate-100 hidden lg:block sticky top-0 h-screen z-40">
+    <div class="p-10">
+      <div class="flex items-center space-x-4 mb-16">
+        <div class="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-emerald-100">H</div>
+        <div>
+            <h2 class="text-xl font-black text-slate-800 tracking-tighter leading-none">Harmony</h2>
+            <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Corporate Elite</span>
+        </div>
+      </div>
+      <nav class="space-y-3">
+        <a href="#" onclick="showTab(event, 'overview')" class="sidebar-link active flex items-center px-6 py-4 rounded-2xl transition-all text-sm font-bold uppercase tracking-tight">Executive Summary</a>
+        <a href="#" onclick="showTab(event, 'loans')" class="sidebar-link flex items-center px-6 py-4 rounded-2xl transition-all text-sm font-bold uppercase tracking-tight">Authorization Queue</a>
+        <a href="#" onclick="showTab(event, 'recovery')" class="sidebar-link flex items-center px-6 py-4 rounded-2xl transition-all text-sm font-bold uppercase tracking-tight">Recovery Oversight</a>
+        <a href="#" onclick="showTab(event, 'history')" class="sidebar-link flex items-center px-6 py-4 rounded-2xl transition-all text-sm font-bold uppercase tracking-tight">Master Audit Log</a>
+      </nav>
+
+      <div class="absolute bottom-10 left-10 right-10 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">System Integrity</p>
+          <div class="flex items-center text-emerald-500 font-bold text-xs uppercase">
+              <span class="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span> Encrypted Core
+          </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 p-6 lg:p-16 overflow-y-auto">
+    <header class="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div>
+            <h1 class="text-4xl font-black text-slate-900 tracking-tighter" id="greeting">System Command</h1>
+            <p class="text-slate-500 font-medium text-lg">Financial Governance & Risk Management</p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="relative">
+                <input type="text" id="adminTrackInput" onkeyup="filterHistory()" placeholder="Search Ledger..." class="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 ring-emerald-100 w-72 transition-all">
+                <svg class="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <button onclick="fetchLoans()" class="bg-white border border-slate-200 p-4 rounded-2xl hover:bg-slate-50 transition shadow-sm active:scale-95">
+                <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <section id="overview" class="tab-content active">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div class="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/40 stat-card">
+                <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Gross Disbursements</p>
+                <h3 class="text-4xl font-black text-slate-900 tracking-tighter" id="statOut">₦0.00</h3>
+                <div class="mt-4 flex items-center text-emerald-600 text-[10px] font-bold">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"></path></svg> Capital Deployed
+                </div>
+            </div>
+            <div class="bg-slate-900 p-10 rounded-[3rem] shadow-2xl stat-card">
+                <p class="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-4">Total Receivables</p>
+                <h3 class="text-4xl font-black text-white tracking-tighter" id="statDebt">₦0.00</h3>
+                <div class="mt-4 flex items-center text-rose-400 text-[10px] font-bold uppercase">
+                    <span class="w-2 h-2 bg-rose-500 rounded-full mr-2 animate-pulse"></span> Active Liability
+                </div>
+            </div>
+            <div class="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/40 stat-card">
+                <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Approval Requests</p>
+                <h3 class="text-4xl font-black text-emerald-600 tracking-tighter" id="pendingCount">00</h3>
+                <p class="text-[10px] font-bold text-slate-400 mt-4 uppercase">Awaiting Authorization</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
+            <div class="p-8 border-b bg-slate-50/50 flex justify-between items-center">
+                <h3 class="font-black text-slate-800 text-sm uppercase tracking-widest">Recent System Actions</h3>
+                <button onclick="showTab(event, 'history')" class="text-[10px] font-black text-emerald-600 uppercase">View Full Journal</button>
+            </div>
+            <div class="p-8" id="recentActionList">
+                </div>
+        </div>
+    </section>
+
+    <section id="loans" class="tab-content">
+        <div class="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-xl shadow-slate-200/30">
+            <div class="p-10 border-b flex justify-between items-center">
+                <div>
+                    <h3 class="text-2xl font-black text-slate-900 tracking-tighter">Authorization Queue</h3>
+                    <p class="text-sm text-slate-400 font-medium">Verify and approve fund disbursements</p>
+                </div>
+                <div class="bg-emerald-50 px-6 py-2 rounded-full border border-emerald-100">
+                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Secure Protocol</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b">
+                        <tr>
+                            <th class="px-10 py-6">Beneficiary Details</th>
+                            <th class="px-10 py-6 text-center">Proposed Sum (NGN)</th>
+                            <th class="px-10 py-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="loanTableBody" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="recovery" class="tab-content">
+    <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <h3 class="text-3xl font-black text-slate-900 tracking-tighter">Active Debt Portfolio</h3>
+            <p class="text-slate-500 font-medium">Search member records to process incoming repayments</p>
+        </div>
+        <div class="relative">
+            <input type="text" id="debtSearchInput" onkeyup="filterDebtPortfolio()" placeholder="Search Name or Tracking ID..." class="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 ring-emerald-100 w-80 transition-all shadow-sm">
+            <svg class="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+    </div>
+    
+    <div id="recoveryStats" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        </div>
+</section>
+
+<div id="repaymentModal" class="fixed inset-0 z-[150] flex items-center justify-center hidden bg-slate-900/60 backdrop-blur-md p-4">
+    <div class="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden p-10 border border-white/20">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">₦</div>
+            <h3 class="text-2xl font-black text-slate-900 uppercase" id="r_name">Member Name</h3>
+            <p class="text-xs font-bold text-slate-400 tracking-widest" id="r_id">REF ID: ---</p>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-slate-50 p-6 rounded-3xl text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Total Loan</p>
+                <p class="text-xl font-black text-slate-900" id="r_total">₦0</p>
+            </div>
+            <div class="bg-rose-50 p-6 rounded-3xl text-center">
+                <p class="text-[10px] font-black text-rose-400 uppercase mb-1">Outstanding</p>
+                <p class="text-xl font-black text-rose-600" id="r_balance">₦0</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <label class="text-[10px] font-black text-slate-400 uppercase ml-4">Enter Repayment Amount (NGN)</label>
+            <input type="number" id="repaymentAmountInput" placeholder="0.00" class="w-full p-6 bg-slate-50 rounded-3xl outline-none border-2 border-transparent focus:border-emerald-500 focus:bg-white transition-all text-2xl font-black text-center">
+            
+            <div class="flex gap-4 mt-6">
+                <button onclick="closeRepaymentModal()" class="flex-1 py-5 rounded-2xl font-black text-xs uppercase text-slate-400 hover:bg-slate-50 transition">Cancel</button>
+                <button onclick="submitRepayment()" class="flex-[2] bg-slate-900 text-white py-5 rounded-3xl font-black text-xs uppercase hover:bg-emerald-600 transition shadow-xl shadow-emerald-100">Confirm Payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <section id="history" class="tab-content">
+        <div class="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
+            <div class="p-10 border-b flex flex-wrap gap-4 justify-between items-center bg-slate-900">
+    <div class="text-white">
+        <h3 class="text-2xl font-black tracking-tight">Master Ledger</h3>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Immutability Protocol Enabled</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="exportToCSV()" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl text-[11px] font-black hover:bg-emerald-500 transition shadow-lg uppercase tracking-widest">
+            Export CSV (Excel)
+        </button>
+        <button onclick="printMasterLog()" class="bg-white text-slate-900 px-6 py-4 rounded-2xl text-[11px] font-black hover:bg-slate-100 transition shadow-lg uppercase tracking-widest">
+            Download PDF
+        </button>
+    </div>
+</div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 font-black text-[10px] uppercase tracking-widest text-slate-400">
+                        <tr>
+                            <th class="px-10 py-8">Reference</th>
+                            <th class="px-10 py-8">Member Name</th>
+                            <th class="px-10 py-8">Lifecycle Status</th>
+                            <th class="px-10 py-8 text-right">Transaction Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = 'https://sheetdb.io/api/v1/b9cm231d1i0he';
+    let allRecords = [];
+    const ADMIN_CREDS = { user: "Admin", pass: "Salako2024" };
+
+    function handleAdminLogin() {
+        const u = document.getElementById('adminUser').value;
+        const p = document.getElementById('adminPass').value;
+        if(u === ADMIN_CREDS.user && p === ADMIN_CREDS.pass) {
+            document.getElementById('authOverlay').classList.add('hidden');
+            fetchLoans();
+        } else { alert("ACCESS DENIED: Credentials Invalid."); }
+    }
+
+    async function fetchLoans() {
+      try {
+        const res = await fetch(API_URL);
+        allRecords = await res.json();
+        updateDashboard();
+      } catch (e) { console.error(e); }
+    }
+
+    function updateDashboard() {
+        // Update Stats
+        const totalOut = allRecords.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+        const totalDebt = allRecords.reduce((acc, curr) => acc + (Number(curr.balance) || 0), 0);
+        const pending = allRecords.filter(r => r.status === 'Processing');
+
+        document.getElementById('statOut').innerText = `₦${totalOut.toLocaleString()}`;
+        document.getElementById('statDebt').innerText = `₦${totalDebt.toLocaleString()}`;
+        document.getElementById('pendingCount').innerText = pending.length.toString().padStart(2, '0');
+
+        renderApplications(pending);
+        renderHistory();
+        renderRecovery();
+    }
+
+   function renderApplications(pending) {
+  const body = document.getElementById('loanTableBody');
+  body.innerHTML = pending.map(loan => `
+    <tr class="hover:bg-slate-50/80 transition-all group">
+      <td class="px-10 py-8">
+        <p class="font-extrabold text-slate-900 text-lg tracking-tight uppercase">${loan.fullName}</p>
+        <p class="text-[10px] font-mono font-bold text-emerald-600 mt-1">ID: ${loan.trackingId}</p>
+      </td>
+      <td class="px-10 py-8">
+        <div class="flex items-center justify-center space-x-3">
+            <span class="font-black text-slate-300">₦</span>
+            <input type="number" id="amt-${loan.trackingId}" value="${loan.amount}" class="bg-white border-2 border-slate-100 rounded-xl px-5 py-3 text-lg font-black w-40 outline-none focus:border-emerald-500 transition-all text-center">
+        </div>
+      </td>
+      <td class="px-10 py-8 text-right space-x-2">
+        <button onclick="approveLoan('${loan.trackingId}')" class="bg-slate-900 text-white px-6 py-4 rounded-2xl text-[10px] font-black hover:bg-emerald-600 transition shadow-lg active:scale-95 uppercase tracking-widest">Grant</button>
+        <button onclick="declineLoan('${loan.trackingId}')" class="bg-rose-50 text-rose-600 px-6 py-4 rounded-2xl text-[10px] font-black hover:bg-rose-600 hover:text-white transition active:scale-95 uppercase tracking-widest">Decline</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 font-bold italic">No pending authorizations in queue.</td></tr>';
+}
+
+    let activeRepaymentRecord = null;
+
+function renderRecovery() {
+    const container = document.getElementById('recoveryStats');
+    // We only show members who have a balance > 0 and have been "Paid" (disbursed)
+    const debtors = allRecords.filter(r => Number(r.balance) > 0 && (r.status === 'Paid' || r.status === 'Approved'));
+    
+    container.innerHTML = debtors.map(d => `
+        <div class="debt-card p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/20 flex flex-col md:flex-row justify-between items-center hover:scale-[1.02] transition-all group">
+            <div>
+                <div class="flex items-center space-x-2 mb-1">
+                    <h4 class="font-black text-slate-900 text-xl uppercase tracking-tighter">${d.fullName}</h4>
+                    <span class="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                </div>
+                <p class="text-[10px] font-bold text-emerald-600 tracking-widest font-mono uppercase">${d.trackingId}</p>
+                <div class="mt-4 flex items-center space-x-4">
+                    <div class="text-xs font-bold text-slate-400">Total Repayment: ₦${Number(d.totalRepayment).toLocaleString()}</div>
+                    <div class="w-1 h-1 bg-slate-200 rounded-full"></div>
+                    <div class="text-xs font-bold text-rose-500">Debt: ₦${Number(d.balance).toLocaleString()}</div>
+                </div>
+            </div>
+            <button onclick="openRepaymentModal('${d.trackingId}')" class="mt-6 md:mt-0 bg-slate-50 text-slate-900 px-8 py-4 rounded-2xl text-[10px] font-black uppercase group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
+                Process Payment
+            </button>
+        </div>
+    `).join('') || '<div class="col-span-2 p-20 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200 text-slate-400 font-bold italic">No active debts found in the system.</div>';
+}
+
+function openRepaymentModal(id) {
+    const record = allRecords.find(r => r.trackingId === id);
+    if(!record) return;
+    
+    activeRepaymentRecord = record;
+    document.getElementById('r_name').innerText = record.fullName;
+    document.getElementById('r_id').innerText = `REF ID: ${record.trackingId}`;
+    document.getElementById('r_total').innerText = `₦${Number(record.amount).toLocaleString()}`;
+    document.getElementById('r_balance').innerText = `₦${Number(record.balance).toLocaleString()}`;
+    document.getElementById('repaymentAmountInput').value = "";
+    
+    document.getElementById('repaymentModal').classList.remove('hidden');
+}
+
+function closeRepaymentModal() {
+    document.getElementById('repaymentModal').classList.add('hidden');
+    activeRepaymentRecord = null;
+}
+
+async function submitRepayment() {
+    const amountToPay = Number(document.getElementById('repaymentAmountInput').value);
+    const currentBalance = Number(activeRepaymentRecord.balance);
+
+    if(!amountToPay || amountToPay <= 0) {
+        alert("Please enter a valid repayment amount.");
+        return;
+    }
+
+    if(amountToPay > currentBalance) {
+        alert("Overpayment Error: Amount exceeds the current outstanding balance.");
+        return;
+    }
+
+    const newBalance = currentBalance - amountToPay;
+    const newStatus = newBalance <= 0 ? 'Liquidated' : 'Paid';
+
+    // Update the Cloud Database
+    const response = await fetch(`${API_URL}/trackingId/${activeRepaymentRecord.trackingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            data: { 
+                balance: newBalance,
+                status: newStatus 
+            } 
+        })
+    });
+
+    if(response.ok) {
+        closeRepaymentModal();
+        triggerModal('Repayment Successful', `₦${amountToPay.toLocaleString()} has been deducted from ${activeRepaymentRecord.fullName}'s balance. New Balance: ₦${newBalance.toLocaleString()}`);
+        
+        // Generate a mini receipt for the repayment
+        generateRepaymentSlip(activeRepaymentRecord, amountToPay, newBalance);
+        fetchLoans(); // Refresh all data
+    }
+}
+
+function filterDebtPortfolio() {
+    const query = document.getElementById('debtSearchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('#recoveryStats > div');
+    
+    cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(query) ? 'flex' : 'none';
+    });
+}
+
+function generateRepaymentSlip(record, paid, remaining) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(20); doc.text("REPAYMENT ACKNOWLEDGMENT", 20, 25);
+    doc.setTextColor(15, 23, 42); doc.setFontSize(10);
+    doc.text(`MEMBER: ${record.fullName.toUpperCase()}`, 20, 60);
+    doc.text(`TRACKING ID: ${record.trackingId}`, 20, 68);
+    doc.setFontSize(14); doc.setFont("helvetica", "bold");
+    doc.text(`AMOUNT PAID: NGN ${paid.toLocaleString()}`, 20, 85);
+    doc.setTextColor(remaining > 0 ? 225 : 5, remaining > 0 ? 29 : 150, remaining > 0 ? 72 : 105);
+    doc.text(`REMAINING BALANCE: NGN ${remaining.toLocaleString()}`, 20, 95);
+    doc.save(`Repayment_${record.trackingId}.pdf`);
+}
+
+    function renderHistory() {
+    const body = document.getElementById('historyTableBody');
+    body.innerHTML = allRecords.map(item => {
+        // Dynamic Status Styling
+        let statusStyle = "";
+        switch(item.status) {
+            case 'Paid':
+            case 'Approved':
+                statusStyle = "bg-blue-50 text-blue-600 border-blue-100";
+                break;
+            case 'Declined':
+                statusStyle = "bg-rose-50 text-rose-600 border-rose-100";
+                break;
+            case 'Liquidated':
+                statusStyle = "bg-emerald-50 text-emerald-600 border-emerald-100";
+                break;
+            default:
+                statusStyle = "bg-orange-50 text-orange-600 border-orange-100";
+        }
+
+        return `
+            <tr class="history-row hover:bg-slate-50 transition-colors">
+                <td class="px-10 py-6 font-mono text-[10px] font-bold text-emerald-600 uppercase tracking-widest">${item.trackingId}</td>
+                <td class="px-10 py-6 font-black text-slate-800 text-sm uppercase">${item.fullName}</td>
+                <td class="px-10 py-6">
+                    <span class="px-4 py-2 rounded-xl text-[9px] font-black uppercase border ${statusStyle}">
+                        ${item.status}
+                    </span>
+                </td>
+                <td class="px-10 py-6 font-black text-right text-slate-900">₦${Number(item.amount).toLocaleString()}</td>
+            </tr>
+        `;
+    }).reverse().join('');
+}
+
+    async function approveLoan(id) {
+    // 1. Find the loan in allRecords instead of loanApplications
+    const loan = allRecords.find(l => l.trackingId === id);
+    const finalAmt = document.getElementById(`amt-${id}`).value;
+    
+    // 2. Safely reference the button
+    const btn = window.event.target; 
+    const originalText = btn.innerText;
+    
+    btn.innerText = "Processing...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}/trackingId/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                data: {
+                    status: 'Approved',
+                    amount: finalAmt,
+                    balance: finalAmt 
+                }
+            })
+        });
+
+        if(response.ok) {
+            triggerModal('Authorized Successfully', `Funds released. Balance of ₦${Number(finalAmt).toLocaleString()} initialized for ID: ${id}`);
+            // Generate the PDF after successful update
+            generateEliteAuthPDF(loan, finalAmt);
+            fetchLoans(); 
+        } else {
+            alert("Server error. Please check your API connection.");
+        }
+    } catch (e) { 
+        console.error(e);
+        alert("Network Error: Could not connect to the database."); 
+    } finally { 
+        btn.innerText = originalText; 
+        btn.disabled = false; 
+    }
+}
+
+async function declineLoan(id) {
+    if (!confirm("Are you sure you want to decline this application? This action cannot be undone.")) return;
+
+    const btn = window.event.target;
+    btn.innerText = "Voiding...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}/trackingId/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                data: {
+                    status: 'Declined',
+                    balance: 0 // Ensure no debt is recorded
+                }
+            })
+        });
+
+        if (response.ok) {
+            triggerModal('Application Declined', `ID: ${id} has been marked as declined and removed from queue.`, '❌');
+            fetchLoans(); 
+        }
+    } catch (e) {
+        alert("Connection Error: Failed to update status.");
+    } finally {
+        btn.innerText = "Decline";
+        btn.disabled = false;
+    }
+}
+
+    // PREMIUM INTERNATIONAL STANDARD PDF
+    function generateEliteAuthPDF(loan, finalAmt) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const authTime = new Date().toLocaleString();
+      const securityHash = btoa(loan.trackingId + finalAmt).substring(0, 16);
+
+      // Header Design
+      doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 60, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.text("HARMONY ELITE", 20, 35);
+      doc.setFontSize(10); doc.setFont("helvetica", "normal"); 
+      doc.text("EXECUTIVE FUND DISBURSEMENT AUTHORIZATION", 20, 45);
+
+      // Body
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(9); doc.text("AUTHORIZATION REFERENCE", 20, 80);
+      doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text(loan.trackingId, 20, 90);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9); doc.text("TIMESTAMP", 190, 80, {align: 'right'});
+      doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text(authTime, 190, 90, {align: 'right'});
+
+      // Main Content Box
+      doc.setDrawColor(241, 245, 249); doc.setFillColor(248, 250, 252); doc.rect(20, 105, 170, 70, 'FD');
+      
+      doc.setTextColor(100); doc.setFontSize(10); doc.text("LEGAL BENEFICIARY", 35, 125);
+      doc.setTextColor(15, 23, 42); doc.setFontSize(16); doc.text(loan.fullName.toUpperCase(), 35, 135);
+
+      doc.setTextColor(100); doc.setFontSize(10); doc.text("AUTHORIZED CAPITAL SUM", 35, 155);
+      doc.setTextColor(5, 150, 105); doc.setFontSize(26); doc.text(`NGN ${Number(finalAmt).toLocaleString()}`, 35, 168);
+
+      // Security Footer
+      doc.setFillColor(248, 250, 252); doc.rect(0, 260, 210, 37, 'F');
+      doc.setTextColor(150); doc.setFontSize(8);
+      doc.text("This document constitutes a binding financial authorization. Tampering with this record is a criminal offense.", 105, 275, {align: 'center'});
+      doc.setFont("helvetica", "bold");
+      doc.text("SECURITY HASH: " + securityHash, 105, 282, {align: 'center'});
+
+      doc.save(`AUTHORIZATION_${loan.trackingId}.pdf`);
+    }
+
+    function filterHistory() {
+        const val = document.getElementById('adminTrackInput').value.toLowerCase();
+        document.querySelectorAll('.history-row').forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+        });
+    }
+
+    function showTab(e, tabId) {
+      e.preventDefault();
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      e.currentTarget.classList.add('active');
+    }
+
+    function printMasterLog() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(22); doc.text("HARMONY MASTER AUDIT LOG", 15, 25);
+        doc.setFontSize(10); doc.text(`Confidential - Full System History as of ${new Date().toLocaleString()}`, 15, 32);
+        
+        let y = 50;
+        doc.setFont("helvetica", "bold");
+        doc.text("ID REF", 15, y); doc.text("MEMBER", 60, y); doc.text("SUM", 140, y); doc.text("STATUS", 180, y);
+        doc.line(15, y+2, 195, y+2);
+        
+        y += 10;
+        allRecords.forEach(item => {
+            doc.setFontSize(8); doc.setFont("helvetica", "normal");
+            doc.text(item.trackingId, 15, y);
+            doc.text(item.fullName.substring(0, 30), 60, y);
+            doc.text(`N${Number(item.amount).toLocaleString()}`, 140, y);
+            doc.text(item.status, 180, y);
+            y += 8;
+        });
+        doc.save("Harmony_Global_Ledger.pdf");
+    }
+
+    function triggerModal(title, message) {
+        document.getElementById('modalBody').innerHTML = `<div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-6">✓</div><h3 class="text-2xl font-black mb-2">${title}</h3><p class="text-slate-500 font-medium">${message}</p>`;
+        document.getElementById('globalModal').classList.remove('hidden');
+    }
+    function closeModal() { document.getElementById('globalModal').classList.add('hidden'); }
+
+    function exportToCSV() {
+    if (allRecords.length === 0) {
+        alert("No data available to export.");
+        return;
+    }
+
+    // Define Headers
+    const headers = ["Tracking ID", "Full Name", "Amount", "Balance", "Status"];
+    
+    // Map data to rows
+    const rows = allRecords.map(r => [
+        r.trackingId,
+        `"${r.fullName}"`, // Wrap name in quotes to handle commas
+        r.amount,
+        r.balance,
+        r.status
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+
+    // Create a download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Harmony_Ledger_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+  </script>
+</body>
+</html>
