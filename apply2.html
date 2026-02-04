@@ -411,11 +411,43 @@
         doc.save(`Harmony_Voucher_${currentTrackingID}.pdf`);
     }
 
-    function sendWhatsApp() {
-        const phone = "2347067580599"; 
-        const msg = `*SECURE LOAN REQUEST*%0A--------------------------%0ARef: ${currentTrackingID}%0AName: ${document.getElementById('fullName').value}%0AAmount: ₦${globalTotalValue.toLocaleString()}%0AStatus: Pending Verification`;
-        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+  function sendDetailedLoanWhatsApp(trackingId) {
+    // 1. Fetch the specific record from your synced sheet data
+    const loan = allRecords.find(r => r.trackingId === trackingId);
+    
+    if (!loan) {
+        alert("Error: Loan record not found in system memory.");
+        return;
     }
+
+    // 2. Extract details directly from the sheet
+    const phone = "2347067580599"; 
+    const memberName = loan.fullName.toUpperCase();
+    const principal = parseFloat(loan.amount) || 0;
+    const totalPayable = parseFloat(loan.balance) || 0;
+    
+    // 3. Derive Interest from sheet data (Total - Principal)
+    const interestAmt = totalPayable - principal;
+    const interestRate = principal > 0 ? ((interestAmt / principal) * 100).toFixed(0) : 0;
+
+    // 4. Construct the professional message using sheet-derived data
+    const msg = `*HARMONY ELITE | LOAN SYNC*%0A` +
+                `------------------------------------%0A` +
+                `*REF ID:* ${loan.trackingId}%0A` +
+                `*MEMBER:* ${memberName}%0A%0A` +
+                `*SHEET DATA VERIFIED*%0A` +
+                `• Principal: ₦${principal.toLocaleString()}%0A` +
+                `• Interest Rate: ${interestRate}%%0A` +
+                `• Interest Amt: ₦${interestAmt.toLocaleString()}%0A` +
+                `------------------------------------%0A` +
+                `*TOTAL PAYABLE: ₦${totalPayable.toLocaleString()}*%0A` +
+                `------------------------------------%0A` +
+                `_Status: ${loan.status}_`;
+
+    // 5. Open WhatsApp
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+}
+        
 
     // Function to save form data to browser memory
 function saveProgress() {
@@ -483,4 +515,5 @@ function checkEligibility() {
 
   </script>
 </body>
+
 </html>
