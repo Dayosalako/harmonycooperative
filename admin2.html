@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#059669"> <link rel="manifest" href="/manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Harmony Elite | Super Admin Command</title>
@@ -17,6 +20,28 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
     .stat-card:hover { transform: translateY(-5px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    :root {
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+    /* Prevents the notch from cutting into your header */
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    
+    /* Disables the "pull-to-refresh" gesture which can be annoying in apps */
+    overscroll-behavior-y: contain;
+    
+    /* Makes it feel like a native app by disabling text selection on UI elements */
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+/* Apply to your fixed navbar specifically */
+nav {
+    padding-top: calc(1rem + var(--safe-top)) !important;
+}
   </style>
 </head>
 
@@ -434,8 +459,12 @@ function sendWhatsAppReminder(phone, name, balance) {
         link.href = URL.createObjectURL(blob);
         link.download = "Ledger_Export.csv"; link.click();
     }
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
   </script>
 </body>
 </html>
+
 
 
