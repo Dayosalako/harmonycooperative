@@ -1,7 +1,4 @@
 <!DOCTYPE html>                                                            
-  
-  
-  
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -260,10 +257,16 @@
 
     function renderRepayments() {
     const container = document.getElementById('repaymentList');
+    // Logic: Only show members who still have a debt balance
     const activeLoans = records.filter(r => Number(r.balance) > 0);
     
+    if (activeLoans.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-center py-20 text-slate-300 font-bold uppercase tracking-widest">No Active Debt Records Found.</p>`;
+        return;
+    }
+
     container.innerHTML = activeLoans.map(loan => {
-        const isHighDebt = Number(loan.balance) > 500000; // Define threshold
+        const isHighDebt = Number(loan.balance) > 500000; // Red alert threshold
         
         return `
             <div class="p-8 bg-slate-50/50 rounded-[2.5rem] border-2 ${isHighDebt ? 'border-rose-500 bg-rose-50/30' : 'border-slate-200'} hover:bg-white transition-all duration-300 search-item group relative overflow-hidden">
@@ -276,17 +279,33 @@
 
                 <div class="flex justify-between items-start mb-8">
                     <div class="w-12 h-12 ${isHighDebt ? 'bg-rose-600' : 'bg-slate-900'} text-white rounded-2xl flex items-center justify-center font-black text-lg shadow-lg">${loan.fullName.charAt(0)}</div>
-                    <div class="text-right">
-                        <span class="${isHighDebt ? 'bg-rose-100 text-rose-600 border-rose-200' : 'bg-emerald-100 text-emerald-600 border-emerald-200'} text-[9px] font-black px-4 py-1.5 rounded-full border uppercase tracking-widest">
-                            ${isHighDebt ? 'Priority Recovery' : 'Standard Debt'}
-                        </span>
-                        <p class="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-tighter">${loan.trackingId}</p>
+                    
+                    <div class="flex items-center gap-2">
+                        <button onclick="sendWhatsAppReminder('${loan.phone}', '${loan.fullName}', '${loan.balance}')" 
+                                title="Send WhatsApp Reminder"
+                                class="bg-emerald-100 text-emerald-700 p-3 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.438 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+                            </svg>
+                        </button>
+
+                        <button onclick='generateLoanStatement(${JSON.stringify(loan)})' 
+                                class="bg-slate-200 text-slate-700 p-3 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span class="text-[9px] font-black uppercase hidden sm:block">Statement</span>
+                        </button>
                     </div>
                 </div>
 
                 <div class="mb-8">
                     <h4 class="font-black text-slate-900 text-xl leading-tight uppercase mb-1">${loan.fullName}</h4>
-                    <p class="text-xs text-slate-500 font-medium italic">Contact: ${loan.phone || 'No Phone Linked'}</p>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${loan.trackingId}</span>
+                        <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-tight italic">${loan.phone || 'No Phone Linked'}</p>
+                    </div>
                 </div>
 
                 <div class="${isHighDebt ? 'bg-white/80' : 'bg-white'} p-6 rounded-3xl shadow-sm border ${isHighDebt ? 'border-rose-200' : 'border-slate-100'} mb-8">
@@ -295,33 +314,20 @@
                         ₦${Number(loan.balance).toLocaleString()}
                     </p>
                 </div>
-<div class="flex items-center gap-2">
-    <button onclick="sendWhatsAppReminder('${loan.phone}', '${loan.fullName}', '${loan.balance}')" 
-            class="bg-emerald-100 text-emerald-700 p-3 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">...</svg>
-    </button>
 
-    <button onclick='generateLoanStatement(${JSON.stringify(loan)})' 
-            class="bg-slate-100 text-slate-700 p-3 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shadow-sm flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-        <span class="text-[9px] font-black uppercase">Get Statement</span>
-    </button>
-</div>
                 <div class="flex items-center space-x-3">
                     <div class="relative flex-1">
                         <span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">₦</span>
-                        <input type="number" id="pay-${loan.trackingId}" placeholder="Enter amount..." class="w-full pl-10 pr-5 py-5 rounded-2xl bg-white border border-slate-200 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 font-bold text-sm">
+                        <input type="number" id="pay-${loan.trackingId}" placeholder="Payment amount..." class="w-full pl-10 pr-5 py-5 rounded-2xl bg-white border border-slate-200 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 font-bold text-sm">
                     </div>
                     <button onclick="secureAction(() => processRepayment('${loan.trackingId}'), 'POST REPAYMENT')" 
-        class="...">
-    Post Payment
-</button>
+                            class="bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black text-[11px] shadow-lg hover:bg-emerald-700 transition uppercase tracking-widest active:scale-95">
+                        Post Payment
+                    </button>
                 </div>
             </div>
         `;
-    }).join('') || '<p class="col-span-full text-center py-20 text-slate-300 font-bold uppercase tracking-widest">No Active Debt Records Found.</p>';
+    }).join('');
 }
     
     function renderLogs() {
@@ -667,8 +673,26 @@ async function secureAction(callback, actionName) {
     const message = encodeURIComponent(`Hello ${name}, reminder of your ₦${Number(balance).toLocaleString()} balance at Harmony Elite.`);
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
 }
+    function sendWhatsAppReminder(phone, name, balance) {
+    if (!phone || phone === "N/A" || phone === "") {
+        return alert("❌ Error: No phone number linked to this member record.");
+    }
+
+    // Sanitize: Remove any non-numeric characters (spaces, dashes, etc.)
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // Create the professional message template
+    const message = `Hello ${name}, this is a friendly reminder from Harmony Elite Cooperative regarding your outstanding loan balance of ₦${Number(balance).toLocaleString()}. Please visit Station A or contact us for repayment. Thank you.`;
+    
+    // Encode the text for a URL
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Open WhatsApp Web or Mobile App in a new tab
+    window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, '_blank');
+}
     
   </script>
 </body>
 
 </html>
+
