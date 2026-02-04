@@ -19,6 +19,22 @@
     .stat-card:hover { transform: translateY(-5px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
   </style>
 </head>
+  <div id="repayModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-[100]">
+    <div class="bg-white rounded-[3rem] p-10 w-full max-sm:m-4 max-w-md shadow-2xl border border-slate-100">
+        <div class="text-center mb-8">
+            <h3 class="text-2xl font-black text-slate-900 uppercase italic">Admin Collection</h3>
+            <p id="repayMemberName" class="text-emerald-600 font-bold text-sm mt-1"></p>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Amount to Collect (₦)</label>
+                <input type="number" id="adminRepayAmount" class="w-full p-5 rounded-2xl bg-slate-50 border border-slate-100 font-black text-xl outline-none focus:ring-4 focus:ring-emerald-500/10">
+            </div>
+            <button id="confirmAdminRepay" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition shadow-xl">Post Collection</button>
+            <button onclick="closeRepayModal()" class="w-full py-3 text-slate-400 font-bold text-[10px] uppercase tracking-widest">Cancel</button>
+        </div>
+    </div>
+</div>
 <body class="flex min-h-screen">
 
   <div id="authOverlay" class="fixed inset-0 z-[200] bg-slate-900 flex items-center justify-center p-4 backdrop-blur-xl">
@@ -244,20 +260,62 @@
       } catch (e) { console.error(e); }
     }
 
-    function updateDashboard() {
-        // Update Stats
-        const totalOut = allRecords.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-        const totalDebt = allRecords.reduce((acc, curr) => acc + (Number(curr.balance) || 0), 0);
-        const pending = allRecords.filter(r => r.status === 'Processing');
+  function updateDashboard() {
+    // 1. Calculate Gross Stats
+    const totalOut = allRecords.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    
+    // 2. Calculate Real-Time Debt (Sum of all 'balance' columns)
+    const totalDebt = allRecords.reduce((acc, curr) => acc + (Number(curr.balance) || 0), 0);
+    
+    // 3. Count Pending Approvals
+    const pendingCount = allRecords.filter(r => r.status === 'Pending').length;
 
-        document.getElementById('statOut').innerText = `₦${totalOut.toLocaleString()}`;
-        document.getElementById('statDebt').innerText = `₦${totalDebt.toLocaleString()}`;
-        document.getElementById('pendingCount').innerText = pending.length.toString().padStart(2, '0');
+    // Update UI Elements
+    document.getElementById('statOut').innerText = `₦${totalOut.toLocaleString()}`;
+    document.getElementById('statDebt').innerText = `₦${totalDebt.toLocaleString()}`;
+    document.getElementById('pendingCount').innerText = pendingCount.toString().padStart(2, '0');
 
-        renderApplications(pending);
-        renderHistory();
-        renderRecovery();
+    // Render the specific sections
+    renderAuthorizationQueue();
+    renderRecoveryOversight();
+    renderMasterAuditLog();
+}
+
+function renderRecoveryOversight() {
+    const container = document.getElementById('recoveryStats');
+    
+    // FILTER: Show anyone who owes money (balance > 0)
+    const debtors = allRecords.filter(r => {
+        const bal = parseFloat(r.balance);
+        return !isNaN(bal) && bal > 0;
+    });
+
+    if (debtors.length === 0) {
+        container.innerHTML = `<div class="col-span-full p-20 text-center text-slate-400 font-bold border-2 border-dashed rounded-[3rem]">NO ACTIVE DEBT IN PORTFOLIO</div>`;
+        return;
     }
+
+    container.innerHTML = debtors.map(loan => `
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
+            <div class="flex justify-between items-start mb-6">
+                <div class="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black">${loan.fullName.charAt(0)}</div>
+                <span class="text-[10px] font-black px-3 py-1 bg-rose-50 text-rose-600 rounded-full border border-rose-100">OUTSTANDING</span>
+            </div>
+            <h4 class="font-black text-slate-900 text-lg uppercase mb-1">${loan.fullName}</h4>
+            <p class="text-[10px] font-bold text-slate-400 tracking-widest mb-6">${loan.trackingId}</p>
+            
+            <div class="bg-slate-50 p-6 rounded-3xl mb-6">
+                <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Current Balance</p>
+                <p class="text-2xl font-black text-slate-900">₦${Number(loan.balance).toLocaleString()}</p>
+            </div>
+            
+            <button onclick="openRepaymentModal('${loan.trackingId}')" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-700 transition shadow-lg shadow-emerald-100">
+                Process Admin Payment
+            </button>
+        </div>
+    `).join('');
+}                    
+  
 
    function renderApplications(pending) {
   const body = document.getElementById('loanTableBody');
@@ -283,31 +341,6 @@
 
     let activeRepaymentRecord = null;
 
-function renderRecovery() {
-    const container = document.getElementById('recoveryStats');
-    // We only show members who have a balance > 0 and have been "Paid" (disbursed)
-    const debtors = allRecords.filter(r => Number(r.balance) > 0 && (r.status === 'Paid' || r.status === 'Approved'));
-    
-    container.innerHTML = debtors.map(d => `
-        <div class="debt-card p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/20 flex flex-col md:flex-row justify-between items-center hover:scale-[1.02] transition-all group">
-            <div>
-                <div class="flex items-center space-x-2 mb-1">
-                    <h4 class="font-black text-slate-900 text-xl uppercase tracking-tighter">${d.fullName}</h4>
-                    <span class="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-                </div>
-                <p class="text-[10px] font-bold text-emerald-600 tracking-widest font-mono uppercase">${d.trackingId}</p>
-                <div class="mt-4 flex items-center space-x-4">
-                    <div class="text-xs font-bold text-slate-400">Total Repayment: ₦${Number(d.totalRepayment).toLocaleString()}</div>
-                    <div class="w-1 h-1 bg-slate-200 rounded-full"></div>
-                    <div class="text-xs font-bold text-rose-500">Debt: ₦${Number(d.balance).toLocaleString()}</div>
-                </div>
-            </div>
-            <button onclick="openRepaymentModal('${d.trackingId}')" class="mt-6 md:mt-0 bg-slate-50 text-slate-900 px-8 py-4 rounded-2xl text-[10px] font-black uppercase group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
-                Process Payment
-            </button>
-        </div>
-    `).join('') || '<div class="col-span-2 p-20 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200 text-slate-400 font-bold italic">No active debts found in the system.</div>';
-}
 
 function openRepaymentModal(id) {
     const record = allRecords.find(r => r.trackingId === id);
@@ -427,16 +460,21 @@ function generateRepaymentSlip(record, paid, remaining) {
     }).reverse().join('');
 }
 
-    async function approveLoan(id) {
-    // 1. Find the loan in allRecords instead of loanApplications
+   async function approveLoan(id) {                    
     const loan = allRecords.find(l => l.trackingId === id);
-    const finalAmt = document.getElementById(`amt-${id}`).value;
+    const finalAmtInput = document.getElementById(`amt-${id}`);
+    const finalAmt = finalAmtInput ? finalAmtInput.value : loan.amount;
     
-    // 2. Safely reference the button
+    // Security: Don't allow empty or zero approvals
+    if (!finalAmt || Number(finalAmt) <= 0) {
+        alert("Please enter a valid approval amount.");
+        return;
+    }
+
     const btn = window.event.target; 
     const originalText = btn.innerText;
     
-    btn.innerText = "Processing...";
+    btn.innerText = "Syncing...";
     btn.disabled = true;
 
     try {
@@ -444,21 +482,19 @@ function generateRepaymentSlip(record, paid, remaining) {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                data: {
-                    status: 'Approved',
-                    amount: finalAmt,
-                    balance: finalAmt 
-                }
+                // Removed the extra "data" wrapper - SheetDB usually needs flat keys
+                status: 'Approved',
+                amount: finalAmt,
+                balance: finalAmt 
             })
         });
 
         if(response.ok) {
             triggerModal('Authorized Successfully', `Funds released. Balance of ₦${Number(finalAmt).toLocaleString()} initialized for ID: ${id}`);
-            // Generate the PDF after successful update
             generateEliteAuthPDF(loan, finalAmt);
             fetchLoans(); 
         } else {
-            alert("Server error. Please check your API connection.");
+            alert("Database error. Ensure the Tracking ID exists in the sheet.");
         }
     } catch (e) { 
         console.error(e);
@@ -468,6 +504,7 @@ function generateRepaymentSlip(record, paid, remaining) {
         btn.disabled = false; 
     }
 }
+  
 
 async function declineLoan(id) {
     if (!confirm("Are you sure you want to decline this application? This action cannot be undone.")) return;
@@ -540,7 +577,10 @@ async function declineLoan(id) {
       doc.text("SECURITY HASH: " + securityHash, 105, 282, {align: 'center'});
 
       doc.save(`AUTHORIZATION_${loan.trackingId}.pdf`);
-    }
+    }                    
+                      
+                      
+  
 
     function filterHistory() {
         const val = document.getElementById('adminTrackInput').value.toLowerCase();
@@ -619,6 +659,54 @@ async function declineLoan(id) {
     document.body.removeChild(link);
 }
 
+    let activeRepayId = null;
+
+function openRepaymentModal(id) {
+    const loan = allRecords.find(l => l.trackingId === id);
+    activeRepayId = id;
+    document.getElementById('repayMemberName').innerText = loan.fullName;
+    document.getElementById('repayModal').classList.remove('hidden');
+    
+    // Set up the button click listener once
+    document.getElementById('confirmAdminRepay').onclick = () => processAdminRepay(id);
+}
+
+function closeRepayModal() {
+    document.getElementById('repayModal').classList.add('hidden');
+}
+
+async function processAdminRepay(id) {
+    const loan = allRecords.find(l => l.trackingId === id);
+    const amountPaid = parseFloat(document.getElementById('adminRepayAmount').value);
+    
+    if(!amountPaid || amountPaid <= 0) return alert("Enter valid amount");
+    
+    const newBalance = Math.max(0, Number(loan.balance) - amountPaid);
+    const btn = document.getElementById('confirmAdminRepay');
+    btn.innerText = "UPDATING LEDGER...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}/trackingId/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ balance: newBalance })
+        });
+
+        if(response.ok) {
+            alert(`SUCCESS: ₦${amountPaid.toLocaleString()} collected. New Balance: ₦${newBalance.toLocaleString()}`);
+            closeRepayModal();
+            fetchLoans(); // Refresh the list
+        }
+    } catch (e) {
+        alert("Sync Failed");
+    } finally {
+        btn.innerText = "POST COLLECTION";
+        btn.disabled = false;
+    }
+}
+    
   </script>
 </body>
+
 </html>
