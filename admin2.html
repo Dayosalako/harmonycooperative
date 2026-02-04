@@ -538,47 +538,71 @@ async function declineLoan(id) {
 }
 
     // PREMIUM INTERNATIONAL STANDARD PDF
-    function generateEliteAuthPDF(loan, finalAmt) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const authTime = new Date().toLocaleString();
-      const securityHash = btoa(loan.trackingId + finalAmt).substring(0, 16);
+   function generateEliteAuthPDF(loan, finalAmt) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const authTime = new Date().toLocaleString();
+    
+    // Ensure finalAmt is a valid number for the hash and display
+    const numericAmt = Number(finalAmt) || 0;
+    const securityHash = btoa((loan.trackingId || 'ELITE') + numericAmt).substring(0, 16);
 
-      // Header Design
-      doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 60, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.text("HARMONY ELITE", 20, 35);
-      doc.setFontSize(10); doc.setFont("helvetica", "normal"); 
-      doc.text("EXECUTIVE FUND DISBURSEMENT AUTHORIZATION", 20, 45);
+    // Header Design (Dark Executive Slate)
+    doc.setFillColor(15, 23, 42); 
+    doc.rect(0, 0, 210, 60, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold"); 
+    doc.setFontSize(28); 
+    doc.text("HARMONY ELITE", 20, 35);
+    doc.setFontSize(10); 
+    doc.setFont("helvetica", "normal"); 
+    doc.text("EXECUTIVE FUND DISBURSEMENT AUTHORIZATION", 20, 45);
 
-      // Body
-      doc.setTextColor(15, 23, 42);
-      doc.setFontSize(9); doc.text("AUTHORIZATION REFERENCE", 20, 80);
-      doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text(loan.trackingId, 20, 90);
+    // Metadata Section
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(9); 
+    doc.text("AUTHORIZATION REFERENCE", 20, 80);
+    doc.setFontSize(14); 
+    doc.setFont("helvetica", "bold"); 
+    doc.text(loan.trackingId || 'N/A', 20, 90);
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9); doc.text("TIMESTAMP", 190, 80, {align: 'right'});
-      doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text(authTime, 190, 90, {align: 'right'});
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9); 
+    doc.text("TIMESTAMP", 190, 80, {align: 'right'});
+    doc.setFontSize(12); 
+    doc.setFont("helvetica", "bold"); 
+    doc.text(authTime, 190, 90, {align: 'right'});
 
-      // Main Content Box
-      doc.setDrawColor(241, 245, 249); doc.setFillColor(248, 250, 252); doc.rect(20, 105, 170, 70, 'FD');
-      
-      doc.setTextColor(100); doc.setFontSize(10); doc.text("LEGAL BENEFICIARY", 35, 125);
-      doc.setTextColor(15, 23, 42); doc.setFontSize(16); doc.text(loan.fullName.toUpperCase(), 35, 135);
+    // Main Content Box (Light Grey Inset)
+    doc.setDrawColor(241, 245, 249); 
+    doc.setFillColor(248, 250, 252); 
+    doc.rect(20, 105, 170, 70, 'FD');
+    
+    doc.setTextColor(100); 
+    doc.setFontSize(10); 
+    doc.text("LEGAL BENEFICIARY", 35, 125);
+    doc.setTextColor(15, 23, 42); 
+    doc.setFontSize(16); 
+    doc.text((loan.fullName || 'N/A').toUpperCase(), 35, 135);
 
-      doc.setTextColor(100); doc.setFontSize(10); doc.text("AUTHORIZED CAPITAL SUM", 35, 155);
-      doc.setTextColor(5, 150, 105); doc.setFontSize(26); doc.text(`NGN ${Number(finalAmt).toLocaleString()}`, 35, 168);
+    doc.setTextColor(100); 
+    doc.setFontSize(10); 
+    doc.text("AUTHORIZED CAPITAL SUM", 35, 155);
+    doc.setTextColor(5, 150, 105); // Elite Green
+    doc.setFontSize(26); 
+    doc.text(`NGN ${numericAmt.toLocaleString()}`, 35, 168);
 
-      // Security Footer
-      doc.setFillColor(248, 250, 252); doc.rect(0, 260, 210, 37, 'F');
-      doc.setTextColor(150); doc.setFontSize(8);
-      doc.text("This document constitutes a binding financial authorization. Tampering with this record is a criminal offense.", 105, 275, {align: 'center'});
-      doc.setFont("helvetica", "bold");
-      doc.text("SECURITY HASH: " + securityHash, 105, 282, {align: 'center'});
+    // Security Footer
+    doc.setFillColor(248, 250, 252); 
+    doc.rect(0, 260, 210, 37, 'F');
+    doc.setTextColor(150); 
+    doc.setFontSize(8);
+    doc.text("This document constitutes a binding financial authorization. Tampering with this record is a criminal offense.", 105, 275, {align: 'center'});
+    doc.setFont("helvetica", "bold");
+    doc.text("SECURITY HASH: " + securityHash, 105, 282, {align: 'center'});
 
-      doc.save(`AUTHORIZATION_${loan.trackingId}.pdf`);
-    }                    
-                      
+    doc.save(`AUTHORIZATION_${loan.trackingId}.pdf`);
+}   
                       
   
 
@@ -710,3 +734,4 @@ async function processAdminRepay(id) {
 </body>
 
 </html>
+
