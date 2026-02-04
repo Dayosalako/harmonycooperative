@@ -145,12 +145,22 @@
     </section>
 
     <section id="recovery" class="tab-content">
-        <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <h3 class="text-3xl font-black text-slate-900 tracking-tighter">Active Debt Portfolio</h3>
-            <input type="text" id="debtSearchInput" onkeyup="filterDebtPortfolio()" placeholder="Search Name..." class="pl-6 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none w-80">
+    <div class="flex justify-between items-end mb-12">
+        <div>
+            <h3 class="text-3xl font-black text-slate-900 tracking-tighter italic">Debt Recovery Portal</h3>
+            <p class="text-slate-500 font-medium mt-1 text-lg">Manage active member loan balances and post settlements</p>
         </div>
-        <div id="recoveryStats" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
-    </section>
+        <div class="flex flex-col items-end gap-3">
+            <div class="relative w-72">
+                <input type="text" id="debtSearchInput" onkeyup="filterDebtPortfolio()" placeholder="Filter Debtors..." 
+                    class="w-full pl-6 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-4 ring-emerald-100">
+            </div>
+            <span class="bg-slate-900 text-white text-[10px] px-3 py-1 rounded-md font-bold uppercase italic tracking-tighter">ISO-20022 Compliant</span>
+        </div>
+    </div>
+    
+    <div id="recoveryStats" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
+</section>
 
     <section id="history" class="tab-content">
         <div class="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
@@ -264,19 +274,43 @@
         finally { btn.innerText = "Grant"; btn.disabled = false; }
     }
 
-    function renderRecoveryOversight() {
-        const container = document.getElementById('recoveryStats');
-        const debtors = allRecords.filter(r => parseFloat(r.balance) > 0);
+    // --- Updated JS Function for admin2.html ---
+function renderRecoveryOversight() {
+    const container = document.getElementById('recoveryStats');
+    const debtors = allRecords.filter(r => parseFloat(r.balance) > 0);
 
-        container.innerHTML = debtors.map(loan => `
-            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                <h4 class="font-black text-slate-900 text-lg uppercase mb-1">${loan.fullName}</h4>
-                <p class="text-[10px] font-bold text-slate-400 mb-4">${loan.trackingId}</p>
-                <p class="text-2xl font-black text-slate-900 mb-6">₦${Number(loan.balance).toLocaleString()}</p>
-                <button onclick="openRepayModal('${loan.trackingId}')" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase">Process Collection</button>
+    container.innerHTML = debtors.map(loan => `
+        <div class="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/40 group hover:border-emerald-200 transition-all">
+            <div class="flex justify-between items-start mb-6">
+                <div class="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-xl font-black shadow-lg">
+                    ${loan.fullName.charAt(0)}
+                </div>
+                <span class="bg-emerald-50 text-emerald-700 text-[9px] font-black px-3 py-1 rounded-lg uppercase border border-emerald-100">
+                    Active Liability
+                </span>
             </div>
-        `).join('') || '<div class="col-span-full p-10 text-center text-slate-400">No active debt.</div>';
-    }
+            
+            <div class="mb-8">
+                <h4 class="font-black text-slate-900 text-xl tracking-tight uppercase group-hover:text-emerald-600 transition-colors">${loan.fullName}</h4>
+                <p class="text-[10px] font-mono font-bold text-slate-400 mt-1 uppercase tracking-widest leading-none">REF: ${loan.trackingId}</p>
+            </div>
+
+            <div class="p-6 bg-slate-50 rounded-3xl mb-8 border border-slate-100">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Outstanding Balance</p>
+                <p class="text-3xl font-black text-slate-900 tracking-tighter">₦${Number(loan.balance).toLocaleString()}</p>
+            </div>
+
+            <button onclick="openRepayModal('${loan.trackingId}')" 
+                class="w-full py-5 bg-emerald-600 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.1em] shadow-lg shadow-emerald-100 hover:bg-emerald-700 hover:-translate-y-1 transition-all active:scale-95">
+                Process Collection
+            </button>
+        </div>
+    `).join('') || `
+        <div class="col-span-full p-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200">
+            <p class="text-slate-400 font-bold uppercase tracking-widest text-xs italic">Clear Skies: No active debt records found</p>
+        </div>
+    `;
+}
 
     function openRepayModal(id) {
         const loan = allRecords.find(l => l.trackingId === id);
@@ -367,3 +401,4 @@
   </script>
 </body>
 </html>
+
